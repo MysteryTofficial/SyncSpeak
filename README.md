@@ -30,7 +30,7 @@
 
 This is a standalone, single-file application. No installation required.
 
-1.  Clone the repository: `git clone https://github.com/username/syncspeak.git`
+1.  Clone the repository: `git clone https://github.com/MysteryTofficial/syncspeak.git`
 2.  Open `index.html` in any modern, secure browser (Chrome/Edge/Firefox recommended).
 3.  Ensure you have a `logo.ico` in the same directory for the professional branding experience.
 
@@ -38,7 +38,6 @@ This is a standalone, single-file application. No installation required.
 
 * **Engine:** Pure HTML5, CSS3, and Vanilla JavaScript.
 * **APIs:** Web Audio API (for zero-latency sound processing), MediaDevices API (for hardware access).
-* **Deployment:** Can be packaged as a `.crx` extension for dedicated application use.
 
 ## 📄 License
 
