@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncSpeak </title>
+    <link rel="icon" type="image/x-icon" href="logo.ico">
+    <style>
+        :root { --primary: #00ff88; --bg: #060a09; --card: rgba(255, 255, 255, 0.07); --text: #f0f0f0; }
+        * { box-sizing: border-box; transition: all 0.2s ease; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; min-height: 100vh; align-items: center; }
+        
+        .header { width: 100%; display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .lang-btn { background: var(--card); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 6px 15px; border-radius: 20px; cursor: pointer; font-size: 0.8rem; }
+        .lang-btn.active { background: var(--primary); color: #000; font-weight: bold; }
+
+        #menu { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px; text-align: center; }
+        h1 { font-size: 3rem; margin: 0; background: linear-gradient(45deg, #00ff88, #00bdff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px; }
+        .main-btn { background: #fff; color: #000; border: none; padding: 18px 40px; font-size: 1.1rem; font-weight: bold; border-radius: 12px; cursor: pointer; width: 300px; box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
+        .main-btn:hover { transform: translateY(-2px); box-shadow: 0 0 25px rgba(0,255,136,0.3); }
+
+        #receiver-ui { width: 100%; max-width: 650px; padding: 15px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat-card { background: var(--card); padding: 15px; border-radius: 15px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-val { font-size: 2rem; font-weight: 800; color: var(--primary); display: block; }
+        .stat-label { font-size: 0.7rem; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
+
+        .video-box { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 20px; overflow: hidden; border: 2px solid var(--card); position: relative; margin-bottom: 15px; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        
+        .crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border: 1px solid var(--primary); border-radius: 50%; pointer-events: none; opacity: 0.7; }
+        .crosshair::after, .crosshair::before { content: ''; position: absolute; background: var(--primary); }
+        .crosshair::after { top: 50%; left: -5px; width: 50px; height: 1px; }
+        .crosshair::before { left: 50%; top: -5px; width: 1px; height: 50px; }
+
+        .controls-pro { background: var(--card); padding: 25px; border-radius: 20px; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.05); }
+        .device-select-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        label { font-size: 0.75rem; opacity: 0.7; display: block; margin-bottom: 5px; text-transform: uppercase; }
+        select, input[type=range] { width: 100%; background: #111; color: white; border: 1px solid #333; padding: 10px; border-radius: 8px; font-size: 0.85rem; }
+        
+        .meter-container { margin: 15px 0; }
+        .meter-label { display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 6px; font-weight: 600; }
+        .meter-bg { width: 100%; height: 8px; background: #111; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        .meter-fill { width: 0%; height: 100%; transition: width 0.05s linear; }
+        #light-bar { background: #ffcc00; box-shadow: 0 0 10px rgba(255, 204, 0, 0.4); }
+        #audio-bar { background: var(--primary); box-shadow: 0 0 10px rgba(0, 255, 136, 0.4); }
+
+        .action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
+        .secondary-btn { background: var(--card); color: white; border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
+        .secondary-btn:hover { background: rgba(255,255,255,0.15); }
+
+        footer { padding: 25px; font-size: 0.75rem; opacity: 0.5; text-align: center; letter-spacing: 1px; }
+        .hidden { display: none !important; }
+        .active-flash { background: #fff !important; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div style="font-weight: 700; color: var(--primary); letter-spacing: 1px;"></div>
+        <div class="lang-bar">
+            <button class="lang-btn active" id="btn-hu" onclick="setLang('hu')">HU</button>
+            <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+        </div>
+    </div>
+
+    <div id="menu">
+        <h1>SyncSpeak</h1>
+        <button class="main-btn" onclick="startMode('source')" data-hu="JELADÓ EGYSÉG" data-en="SIGNAL SOURCE">JELADÓ EGYSÉG</button>
+        <button class="main-btn" onclick="startMode('receiver')" data-hu="ANALIZÁTOR EGYSÉG" data-en="ANALYZER UNIT">ANALIZÁTOR EGYSÉG</button>
+    </div>
+
+    <div id="source-ui" class="hidden" style="width: 100%; text-align: center;">
+        <div id="flash-screen" style="height: 55vh; background: #000; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; letter-spacing: 2px;">SYNC SIGNAL ACTIVE</div>
+        <div style="padding: 40px;">
+            <button class="main-btn" onclick="location.reload()" data-hu="MÉRÉS LEÁLLÍTÁSA" data-en="STOP SIGNAL">MÉRÉS LEÁLLÍTÁSA</button>
+        </div>
+    </div>
+
+    <div id="receiver-ui" class="hidden">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-val" id="val-current">0.0</span>
+                <span class="stat-label" data-hu="Aktuális offset (ms)" data-en="Current Offset (ms)">Aktuális offset (ms)</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-val" id="val-avg" style="color:#00bdff">0.0</span>
+                <span class="stat-label" data-hu="Átlagolt érték (ms)" data-en="Average Latency (ms)">Átlagolt érték (ms)</span>
+            </div>
+        </div>
+
+        <div class="video-box">
+            <video id="v-preview" autoplay playsinline></video>
+            <div class="crosshair"></div>
+            <canvas id="c-proc" width="20" height="20" style="display:none;"></canvas>
+        </div>
+
+        <div class="controls-pro">
+            <div class="device-select-group">
+                <div>
+                    <label data-hu="Kamera:" data-en="Camera:">Kamera:</label>
+                    <select id="cam-select"></select>
+                </div>
+                <div>
+                    <label data-hu="Mikrofon:" data-en="Microphone:">Mikrofon:</label>
+                    <select id="mic-select"></select>
+                </div>
+            </div>
+
+            <div class="meter-container">
+                <div class="meter-label">
+                    <span data-hu="Fény intenzitás" data-en="Light Intensity">Fény intenzitás</span>
+                    <span id="light-val-num">0%</span>
+                </div>
+                <div class="meter-bg"><div id="light-bar" class="meter-fill"></div></div>
+                <label style="margin-top:8px" data-hu="Fényérzékelési küszöb:" data-en="Light Threshold:">Küszöb:</label>
+                <input type="range" id="lightThreshold" min="20" max="100" value="75">
+            </div>
+
+            <div class="meter-container">
+                <div class="meter-label">
+                    <span data-hu="Bemeneti jelszint" data-en="Input Signal Level">Bemeneti jelszint</span>
+                    <span id="audio-val-num">0%</span>
+                </div>
+                <div class="meter-bg"><div id="audio-bar" class="meter-fill"></div></div>
+                <label style="margin-top:8px" data-hu="Akusztikus küszöb:" data-en="Acoustic Threshold:">Küszöb:</label>
+                <input type="range" id="soundThreshold" min="5" max="100" value="40">
+            </div>
+
+            <div class="action-btns">
+                <button class="secondary-btn" onclick="exportData()" data-hu="ADATOK EXPORTÁLÁSA" data-en="EXPORT LOG DATA">ADATOK EXPORTÁLÁSA</button>
+                <button class="secondary-btn" onclick="location.reload()" data-hu="RENDSZER RESET" data-en="SYSTEM RESET">RENDSZER RESET</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>Made By: MysteryT | v1.2.0 </footer>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let measurements = [];
+        let currentLang = 'hu';
+        let currentStream = null;
+
+        function setLang(l) {
+            currentLang = l;
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + l).classList.add('active');
+            document.querySelectorAll('[data-hu]').forEach(el => {
+                el.innerText = el.getAttribute('data-' + l);
+            });
+        }
+
+        function startMode(mode) {
+            document.getElementById('menu').classList.add('hidden');
+            if(mode === 'source') initSource();
+            else initReceiver();
+        }
+
+        function initSource() {
+            document.getElementById('source-ui').classList.remove('hidden');
+            audioCtx.resume();
+            setInterval(() => {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now); osc.stop(now + 0.05);
+                const screen = document.getElementById('flash-screen');
+                screen.classList.add('active-flash');
+                setTimeout(() => screen.classList.remove('active-flash'), 50);
+            }, 1000);
+        }
+
+        async function initReceiver() {
+            document.getElementById('receiver-ui').classList.remove('hidden');
+            const camSelect = document.getElementById('cam-select');
+            const micSelect = document.getElementById('mic-select');
+            
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            
+            // Kamera lista
+            devices.filter(d => d.kind === 'videoinput').forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.deviceId;
+                opt.text = d.label || `Camera ${camSelect.length + 1}`;
+                camSelect.appendChild(opt);
+            });
+
+            // Mikrofon lista
+            devices.filter(d => d.kind === 'audioinput').forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.deviceId;
+                opt.text = d.label || `Mic ${micSelect.length + 1}`;
+                micSelect.appendChild(opt);
+            });
+
+            camSelect.onchange = micSelect.onchange = () => startStream(camSelect.value, micSelect.value);
+            startStream(camSelect.value, micSelect.value);
+        }
+
+        async function startStream(camId, micId) {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+
+            const video = document.getElementById('v-preview');
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { deviceId: camId ? { exact: camId } : undefined }, 
+                audio: { deviceId: micId ? { exact: micId } : undefined } 
+            });
+            
+            currentStream = stream;
+            video.srcObject = stream;
+            audioCtx.resume();
+            
+            const source = audioCtx.createMediaStreamSource(stream);
+            const analyzer = audioCtx.createAnalyser();
+            source.connect(analyzer);
+            const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+
+            const ctx = document.getElementById('c-proc').getContext('2d', {willReadFrequently: true});
+            let lastFlash = 0;
+
+            function process() {
+                if (!currentStream) return;
+
+                // Fényelemzés
+                ctx.drawImage(video, video.videoWidth/2 - 10, video.videoHeight/2 - 10, 20, 20, 0, 0, 20, 20);
+                const p = ctx.getImageData(0,0,20,20).data;
+                let b = 0; for(let i=0; i<p.length; i+=4) b += (p[i]+p[i+1]+p[i+2])/3;
+                let lightLevel = (b/400) / 2.55;
+                
+                document.getElementById('light-bar').style.width = lightLevel + "%";
+                document.getElementById('light-val-num').innerText = Math.round(lightLevel) + "%";
+
+                if(lightLevel > document.getElementById('lightThreshold').value) {
+                    lastFlash = performance.now();
+                }
+
+                // Hang elemzés
+                analyzer.getByteTimeDomainData(dataArray);
+                let max = 0;
+                for(let i=0; i<dataArray.length; i++) {
+                    let a = Math.abs(dataArray[i]-128);
+                    if(a > max) max = a;
+                }
+                let audioLevel = (max / 128) * 100;
+                document.getElementById('audio-bar').style.width = audioLevel + "%";
+                document.getElementById('audio-val-num').innerText = Math.round(audioLevel) + "%";
+
+                if(audioLevel > document.getElementById('soundThreshold').value && lastFlash > 0) {
+                    const diff = performance.now() - lastFlash;
+                    if(diff < 800) {
+                        measurements.push(diff.toFixed(1));
+                        document.getElementById('val-current').innerText = diff.toFixed(1);
+                        const avg = measurements.reduce((a,b) => parseFloat(a)+parseFloat(b)) / measurements.length;
+                        document.getElementById('val-avg').innerText = avg.toFixed(1);
+                        lastFlash = 0;
+                    }
+                }
+                requestAnimationFrame(process);
+            }
+            process();
+        }
+
+        function exportData() {
+            if(measurements.length === 0) return alert("Nincs rögzített adat.");
+            const content = "SyncSpeak  Calibration Log\n" + "-------------------------------------\n" + 
+                            "Timestamp: " + new Date().toLocaleString() + "\n" +
+                            "Measured Average: " + document.getElementById('val-avg').innerText + " ms\n\n" +
+                            "Data Points (ms):\n" + measurements.join("\n");
+            const blob = new Blob([content], {type: "text/plain"});
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "SyncSpeak_Calibration.txt";
+            a.click();
+        }
+    </script>
+</body>
+</html>
